@@ -419,6 +419,18 @@ void ImageSetPixel(Image img, int x, int y, uint8 level) { ///
 void ImageNegative(Image img) { ///
   assert (img != NULL);
   // Insert your code here!
+   for (int i = 0; i < img.height; ++i) {
+        for (int j = 0; j < img.width; ++j) {
+            // Invert the red component
+            img.pixels[i][j].red = 255 - img.pixels[i][j].red;
+
+            // Invert the green component
+            img.pixels[i][j].green = 255 - img.pixels[i][j].green;
+
+            // Invert the blue component
+            img.pixels[i][j].blue = 255 - img.pixels[i][j].blue;
+        }
+    }
 }
 
 /// Apply threshold to image.
@@ -427,6 +439,18 @@ void ImageNegative(Image img) { ///
 void ImageThreshold(Image img, uint8 thr) { ///
   assert (img != NULL);
   // Insert your code here!
+  for (int i = 0; i < img.height; ++i) {
+        for (int j = 0; j < img.width; ++j) {
+            // Compare intensity level with the threshold
+            if (img.pixels[i][j].intensity < thr) {
+                // Set to black (0) if below the threshold
+                img.pixels[i][j].intensity = 0;
+            } else {
+                // Set to white (255, assuming 8-bit intensity values) if above or equal to the threshold
+                img.pixels[i][j].intensity = 255;
+            }
+        }
+    }
 }
 
 /// Brighten image by a factor.
@@ -435,8 +459,16 @@ void ImageThreshold(Image img, uint8 thr) { ///
 /// darken the image if factor<1.0.
 void ImageBrighten(Image img, double factor) { ///
   assert (img != NULL);
-  // ? assert (factor >= 0.0);
+  assert (factor >= 0.0);
   // Insert your code here!
+  for (int i = 0; i < img.height; ++i) {
+        for (int j = 0; j < img.width; ++j) {
+            // Multiply each color component by the factor
+            img.pixels[i][j].red = static_cast<uint8_t>(std::min(255.0, img.pixels[i][j].red * factor));
+            img.pixels[i][j].green = static_cast<uint8_t>(std::min(255.0, img.pixels[i][j].green * factor));
+            img.pixels[i][j].blue = static_cast<uint8_t>(std::min(255.0, img.pixels[i][j].blue * factor));
+        }
+    }
 }
 
 /// Geometric transformations
@@ -463,6 +495,24 @@ void ImageBrighten(Image img, double factor) { ///
 Image ImageRotate(Image img) { ///
   assert (img != NULL);
   // Insert your code here!
+  // Create a new image with swapped width and height
+    Image rotatedImage;
+    rotatedImage.width = img.height;
+    rotatedImage.height = img.width;
+    rotatedImage.pixels = new Pixel*[rotatedImage.height];
+
+    for (int i = 0; i < rotatedImage.height; ++i) {
+        rotatedImage.pixels[i] = new Pixel[rotatedImage.width];
+    }
+
+    // Copy pixels from the original image to the rotated image
+    for (int i = 0; i < img.height; ++i) {
+        for (int j = 0; j < img.width; ++j) {
+            rotatedImage.pixels[j][img.height - 1 - i] = img.pixels[i][j];
+        }
+    }
+
+    return rotatedImage;
 }
 
 /// Mirror an image = flip left-right.
