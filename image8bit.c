@@ -21,6 +21,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <math.h>
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
@@ -419,17 +420,9 @@ void ImageSetPixel(Image img, int x, int y, uint8 level) { ///
 void ImageNegative(Image img) { ///
   assert (img != NULL);
   // Insert your code here!
-  for (int i = 0; i < img.height; ++i) {
-    for (int j = 0; j < img.width; ++j) {
-      // Invert the red component
-      img.pixels[i][j].red = 255 - img.pixels[i][j].red;
-
-      // Invert the green component
-      img.pixels[i][j].green = 255 - img.pixels[i][j].green;
-
-      // Invert the blue component
-      img.pixels[i][j].blue = 255 - img.pixels[i][j].blue;
-    }
+  for (int i = 0; i < img->height*img->width; ++i) {
+    // Invert each pixel by calculating the negative value
+    img->pixel[i] = PixMax - img->pixel[i];
   }
 }
 
@@ -439,16 +432,14 @@ void ImageNegative(Image img) { ///
 void ImageThreshold(Image img, uint8 thr) { ///
   assert (img != NULL);
   // Insert your code here!
-  for (int i = 0; i < img.height; ++i) {
-    for (int j = 0; j < img.width; ++j) {
-      // Compare intensity level with the threshold
-      if (img.pixels[i][j].intensity < thr) {
-        // Set to black (0) if below the threshold
-        img.pixels[i][j].intensity = 0;
-      } else {
-        // Set to white (255, assuming 8-bit intensity values) if above or equal to the threshold
-        img.pixels[i][j].intensity = 255;
-      }
+  for (int i = 0; i < img->height*img->width; ++i) {
+    // Compare intensity level with the threshold
+    if (img->pixel[i] < thr) {
+      // Set to black if below the threshold
+      img->pixel[i] = 0;
+    } else {
+      // Set to white if above or equal to the threshold
+      img->pixel[i] = PixMax;
     }
   }
 }
@@ -461,13 +452,9 @@ void ImageBrighten(Image img, double factor) { ///
   assert (img != NULL);
   assert (factor >= 0.0);
   // Insert your code here!
-  for (int i = 0; i < img.height; ++i) {
-    for (int j = 0; j < img.width; ++j) {
-      // Multiply each color component by the factor
-      img.pixels[i][j].red = static_cast<uint8_t>(std::min(255.0, img.pixels[i][j].red * factor));
-      img.pixels[i][j].green = static_cast<uint8_t>(std::min(255.0, img.pixels[i][j].green * factor));
-      img.pixels[i][j].blue = static_cast<uint8_t>(std::min(255.0, img.pixels[i][j].blue * factor));
-    }
+  for (int i = 0; i < img->height*img->width; ++i) {
+    // Multiply each color component by the factor
+    img->pixel[i]= (uint8_t) fmin(255.0, img->pixel[i] * factor);
   }
 }
 
@@ -492,28 +479,29 @@ void ImageBrighten(Image img, double factor) { ///
 /// On success, a new image is returned.
 /// (The caller is responsible for destroying the returned image!)
 /// On failure, returns NULL and errno/errCause are set accordingly.
-Image ImageRotate(Image img) { ///
-  assert (img != NULL);
-  // Insert your code here!
-  // Create a new image with swapped width and height
-  Image rotatedImage;
-  rotatedImage.width = img.height;
-  rotatedImage.height = img.width;
-  rotatedImage.pixels = new Pixel*[rotatedImage.height];
+Image ImageRotate(Image img) {
+  assert(img != NULL);
 
-  for (int i = 0; i < rotatedImage.height; ++i) {
-    rotatedImage.pixels[i] = new Pixel[rotatedImage.width];
+  // Create a new image with swapped width and height
+  Image rotatedImage = (Image)malloc(sizeof(struct Image));
+  rotatedImage->width = img->height;
+  rotatedImage->height = img->width;
+  rotatedImage->pixel = (Pixel*)malloc(rotatedImage->height * sizeof(Pixel));
+
+  for (int i = 0; i < rotatedImage->height; ++i) {
+    rotatedImage->pixel[i] = (Pixel)malloc(rotatedImage->width * sizeof(struct Pixel));
   }
 
   // Copy pixels from the original image to the rotated image
-  for (int i = 0; i < img.height; ++i) {
-    for (int j = 0; j < img.width; ++j) {
-      rotatedImage.pixels[j][img.height - 1 - i] = img.pixels[i][j];
+  for (int i = 0; i < img->height; ++i) {
+    for (int j = 0; j < img->width; ++j) {
+      rotatedImage->pixel[j * img->height + img->height - 1 - i] = img->pixel[i * img->width + j];
     }
   }
 
   return rotatedImage;
 }
+
 
 /// Mirror an image = flip left-right.
 /// Returns a mirrored version of the image.
