@@ -419,18 +419,18 @@ void ImageSetPixel(Image img, int x, int y, uint8 level) { ///
 void ImageNegative(Image img) { ///
   assert (img != NULL);
   // Insert your code here!
-   for (int i = 0; i < img.height; ++i) {
-        for (int j = 0; j < img.width; ++j) {
-            // Invert the red component
-            img.pixels[i][j].red = 255 - img.pixels[i][j].red;
+  for (int i = 0; i < img.height; ++i) {
+    for (int j = 0; j < img.width; ++j) {
+      // Invert the red component
+      img.pixels[i][j].red = 255 - img.pixels[i][j].red;
 
-            // Invert the green component
-            img.pixels[i][j].green = 255 - img.pixels[i][j].green;
+      // Invert the green component
+      img.pixels[i][j].green = 255 - img.pixels[i][j].green;
 
-            // Invert the blue component
-            img.pixels[i][j].blue = 255 - img.pixels[i][j].blue;
-        }
+      // Invert the blue component
+      img.pixels[i][j].blue = 255 - img.pixels[i][j].blue;
     }
+  }
 }
 
 /// Apply threshold to image.
@@ -440,17 +440,17 @@ void ImageThreshold(Image img, uint8 thr) { ///
   assert (img != NULL);
   // Insert your code here!
   for (int i = 0; i < img.height; ++i) {
-        for (int j = 0; j < img.width; ++j) {
-            // Compare intensity level with the threshold
-            if (img.pixels[i][j].intensity < thr) {
-                // Set to black (0) if below the threshold
-                img.pixels[i][j].intensity = 0;
-            } else {
-                // Set to white (255, assuming 8-bit intensity values) if above or equal to the threshold
-                img.pixels[i][j].intensity = 255;
-            }
-        }
+    for (int j = 0; j < img.width; ++j) {
+      // Compare intensity level with the threshold
+      if (img.pixels[i][j].intensity < thr) {
+        // Set to black (0) if below the threshold
+        img.pixels[i][j].intensity = 0;
+      } else {
+        // Set to white (255, assuming 8-bit intensity values) if above or equal to the threshold
+        img.pixels[i][j].intensity = 255;
+      }
     }
+  }
 }
 
 /// Brighten image by a factor.
@@ -462,13 +462,13 @@ void ImageBrighten(Image img, double factor) { ///
   assert (factor >= 0.0);
   // Insert your code here!
   for (int i = 0; i < img.height; ++i) {
-        for (int j = 0; j < img.width; ++j) {
-            // Multiply each color component by the factor
-            img.pixels[i][j].red = static_cast<uint8_t>(std::min(255.0, img.pixels[i][j].red * factor));
-            img.pixels[i][j].green = static_cast<uint8_t>(std::min(255.0, img.pixels[i][j].green * factor));
-            img.pixels[i][j].blue = static_cast<uint8_t>(std::min(255.0, img.pixels[i][j].blue * factor));
-        }
+    for (int j = 0; j < img.width; ++j) {
+      // Multiply each color component by the factor
+      img.pixels[i][j].red = static_cast<uint8_t>(std::min(255.0, img.pixels[i][j].red * factor));
+      img.pixels[i][j].green = static_cast<uint8_t>(std::min(255.0, img.pixels[i][j].green * factor));
+      img.pixels[i][j].blue = static_cast<uint8_t>(std::min(255.0, img.pixels[i][j].blue * factor));
     }
+  }
 }
 
 /// Geometric transformations
@@ -496,23 +496,23 @@ Image ImageRotate(Image img) { ///
   assert (img != NULL);
   // Insert your code here!
   // Create a new image with swapped width and height
-    Image rotatedImage;
-    rotatedImage.width = img.height;
-    rotatedImage.height = img.width;
-    rotatedImage.pixels = new Pixel*[rotatedImage.height];
+  Image rotatedImage;
+  rotatedImage.width = img.height;
+  rotatedImage.height = img.width;
+  rotatedImage.pixels = new Pixel*[rotatedImage.height];
 
-    for (int i = 0; i < rotatedImage.height; ++i) {
-        rotatedImage.pixels[i] = new Pixel[rotatedImage.width];
+  for (int i = 0; i < rotatedImage.height; ++i) {
+    rotatedImage.pixels[i] = new Pixel[rotatedImage.width];
+  }
+
+  // Copy pixels from the original image to the rotated image
+  for (int i = 0; i < img.height; ++i) {
+    for (int j = 0; j < img.width; ++j) {
+      rotatedImage.pixels[j][img.height - 1 - i] = img.pixels[i][j];
     }
+  }
 
-    // Copy pixels from the original image to the rotated image
-    for (int i = 0; i < img.height; ++i) {
-        for (int j = 0; j < img.width; ++j) {
-            rotatedImage.pixels[j][img.height - 1 - i] = img.pixels[i][j];
-        }
-    }
-
-    return rotatedImage;
+  return rotatedImage;
 }
 
 /// Mirror an image = flip left-right.
@@ -525,6 +525,23 @@ Image ImageRotate(Image img) { ///
 Image ImageMirror(Image img) { ///
   assert (img != NULL);
   // Insert your code here!
+  // Create a new image with the same dimensions
+  Image* mirroredImg = createImage(img->width, img->height);
+  if (mirroredImg == NULL) {
+    // Error occurred while creating the new image
+    return NULL;
+  }
+
+  // Copy pixels in reverse order to mirror the image
+  for (int y = 0; y < img->height; ++y) {
+    for (int x = 0; x < img->width; ++x) {
+      int originalIndex = y * img->width + x;
+      int mirroredIndex = y * img->width + (img->width - 1 - x);
+      mirroredImg->pixels[mirroredIndex] = img->pixels[originalIndex];
+    }
+  }
+
+  return mirroredImg;
 }
 
 /// Crop a rectangular subimage from img.
@@ -543,6 +560,23 @@ Image ImageCrop(Image img, int x, int y, int w, int h) { ///
   assert (img != NULL);
   assert (ImageValidRect(img, x, y, w, h));
   // Insert your code here!
+  // Create a new image with the specified width and height
+  Image* croppedImg = createImage(w, h);
+  if (croppedImg == NULL) {
+    // Error occurred while creating the new image
+    return NULL;
+  }
+
+  // Copy pixels from the specified region
+  for (int i = 0; i < h; ++i) {
+    for (int j = 0; j < w; ++j) {
+      int originalIndex = (y + i) * img->width + (x + j);
+      int croppedIndex = i * w + j;
+      croppedImg->pixels[croppedIndex] = img->pixels[originalIndex];
+    }
+  }
+
+  return croppedImg;
 }
 
 
@@ -557,6 +591,14 @@ void ImagePaste(Image img1, int x, int y, Image img2) { ///
   assert (img2 != NULL);
   assert (ImageValidRect(img1, x, y, img2->width, img2->height));
   // Insert your code here!
+  // Iterate over the pixels of img2 and copy them into img1
+  for (int i = 0; i < img2->height; ++i) {
+    for (int j = 0; j < img2->width; ++j) {
+      int index1 = (y + i) * img1.width + (x + j);
+      int index2 = i * img2->width + j;
+      img1.pixels[index1] = img2->pixels[index2];
+    }
+  }
 }
 
 /// Blend an image into a larger image.
@@ -570,6 +612,22 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha) { ///
   assert (img2 != NULL);
   assert (ImageValidRect(img1, x, y, img2->width, img2->height));
   // Insert your code here!
+  // Iterate over the pixels of img2 and blend them into img1
+  for (int i = 0; i < img2->height; ++i) {
+    for (int j = 0; j < img2->width; ++j) {
+      int index1 = (y + i) * img1.width + (x + j);
+      int index2 = i * img2->width + j;
+
+      // Blend the pixel values using the specified alpha
+      double blendedValue = alpha * img2->pixels[index2] + (1.0 - alpha) * img1.pixels[index1];
+
+      // Saturate the result to prevent overflows and underflows
+      blendedValue = (blendedValue > 255.0) ? 255.0 : (blendedValue < 0.0) ? 0.0 : blendedValue;
+
+      // Update the pixel value in img1
+      img1.pixels[index1] = (unsigned char)blendedValue;
+    }
+  }
 }
 
 /// Compare an image to a subimage of a larger image.
@@ -580,6 +638,24 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) { ///
   assert (img2 != NULL);
   assert (ImageValidPos(img1, x, y));
   // Insert your code here!
+  // Check if the subimage fits inside the larger image
+  if (!ImageValidPos(img1, x + img2->width - 1, y + img2->height - 1)) {
+    return 0; // Subimage does not fit
+  }
+
+  // Iterate over the pixels of img2 and compare them to the corresponding pixels in img1
+  for (int i = 0; i < img2->height; ++i) {
+    for (int j = 0; j < img2->width; ++j) {
+      int index1 = (y + i) * img1->width + (x + j);
+      int index2 = i * img2->width + j;
+
+      if (img1->pixels[index1] != img2->pixels[index2]) {
+        return 0; // Pixels do not match
+      }
+    }
+  }
+
+  return 1; // Subimage matches
 }
 
 /// Locate a subimage inside another image.
@@ -590,6 +666,20 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
   assert (img1 != NULL);
   assert (img2 != NULL);
   // Insert your code here!
+  // Iterate over the pixels of img1 to find a matching subimage
+  for (int y = 0; y <= img1->height - img2->height; ++y) {
+    for (int x = 0; x <= img1->width - img2->width; ++x) {
+      if (ImageMatchSubImage(img1, x, y, img2)) {
+        // Match found, set the matching position and return 1
+        *px = x;
+        *py = y;
+        return 1;
+      }
+    }
+  }
+
+  // No match found
+  return 0;
 }
 
 
@@ -601,5 +691,44 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
 /// The image is changed in-place.
 void ImageBlur(Image img, int dx, int dy) { ///
   // Insert your code here!
+  /// Create a temporary array to store the blurred pixels
+  unsigned char* blurredPixels = malloc(img.width * img.height * sizeof(unsigned char));
+  if (blurredPixels == NULL) {
+    // Handle memory allocation failure
+    return;
+  }
+
+  // Iterate over each pixel in the image
+  for(int y = 0; y < img.height; ++y) {
+    for (int x = 0; x < img.width; ++x) {
+      double sum = 0.0;
+      int count = 0;
+
+      // Iterate over the pixels in the specified rectangle
+      for (int i = -dy; i <= dy; ++i) {
+        for (int j = -dx; j <= dx; ++j) {
+          int newX = x + j;
+          int newY = y + i;
+
+          // Check if the pixel position is valid
+          if (ImageValidPos(&img, newX, newY)) {
+            int index = newY * img.width + newX;
+            sum += img.pixels[index];
+            count++;
+          }
+        }
+      }
+
+      // Compute the mean and update the blurred image
+      int blurredIndex = y * img.width + x;
+      blurredPixels[blurredIndex] = (unsigned char)(sum / count);
+    }
+  }
+
+  // Copy the blurred pixels back to the original image
+  memcpy(img.pixels, blurredPixels, img.width * img.height * sizeof(unsigned char));
+
+  // Free the temporary array
+  free(blurredPixels);
 }
 
