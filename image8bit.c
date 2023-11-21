@@ -385,6 +385,8 @@ int ImageValidRect(Image img, int x, int y, int w, int h){ ///
 static inline int G(Image img, int x, int y) {
   int index;
   // Insert your code here!
+  index = y * img->width + x;
+  // Compute the index of the pixel in the pixel array
   assert (0 <= index && index < img->width*img->height);
   return index;
 }
@@ -454,7 +456,10 @@ void ImageBrighten(Image img, double factor) { ///
   // Insert your code here!
   for (int i = 0; i < img->height*img->width; ++i) {
     // Multiply each color component by the factor
-    img->pixel[i]= (uint8_t) fmin(255.0, img->pixel[i] * factor);
+    img->pixel[i]= (uint8_t)(img->pixel[i] * factor + 0.5);
+    if(img->pixel[i] > PixMax){
+      img->pixel[i] = PixMax;
+    }
   }
 }
 
@@ -483,19 +488,25 @@ Image ImageRotate(Image img) {
   assert(img != NULL);
 
   // Create a new image with swapped width and height
-  Image rotatedImage = (Image)malloc(sizeof(struct Image));
-  rotatedImage->width = img->height;
-  rotatedImage->height = img->width;
-  rotatedImage->pixel = (Pixel*)malloc(rotatedImage->height * sizeof(Pixel));
+  Image rotatedImage = ImageCreate(img->height, img->width, img->maxval);
+  if (rotatedImage == NULL) {
+    // Error occurred while creating the new image
+    return NULL;
+  }
 
   for (int i = 0; i < rotatedImage->height; ++i) {
-    rotatedImage->pixel[i] = (Pixel)malloc(rotatedImage->width * sizeof(struct Pixel));
+    for (int j = 0; j < rotatedImage->width; ++j) {
+      int index = i * rotatedImage->width + j;
+      rotatedImage->pixel[index] = 0;
+    }
   }
 
   // Copy pixels from the original image to the rotated image
   for (int i = 0; i < img->height; ++i) {
     for (int j = 0; j < img->width; ++j) {
-      rotatedImage->pixel[j * img->height + img->height - 1 - i] = img->pixel[i * img->width + j];
+      int originalIndex = i * img->width + j;
+      int rotatedIndex = j * rotatedImage->width + (rotatedImage->width - 1 - i);
+      rotatedImage->pixel[rotatedIndex] = img->pixel[originalIndex];
     }
   }
 
@@ -514,7 +525,7 @@ Image ImageMirror(Image img) { ///
   assert (img != NULL);
   // Insert your code here!
   // Create a new image with the same dimensions
-  Image* mirroredImg = createImage(img->width, img->height);
+  Image mirroredImg = ImageCreate(img->width, img->height, img->maxval);
   if (mirroredImg == NULL) {
     // Error occurred while creating the new image
     return NULL;
@@ -525,7 +536,7 @@ Image ImageMirror(Image img) { ///
     for (int x = 0; x < img->width; ++x) {
       int originalIndex = y * img->width + x;
       int mirroredIndex = y * img->width + (img->width - 1 - x);
-      mirroredImg->pixels[mirroredIndex] = img->pixels[originalIndex];
+      mirroredImg->pixel[mirroredIndex] = img->pixel[originalIndex];
     }
   }
 
@@ -549,7 +560,7 @@ Image ImageCrop(Image img, int x, int y, int w, int h) { ///
   assert (ImageValidRect(img, x, y, w, h));
   // Insert your code here!
   // Create a new image with the specified width and height
-  Image* croppedImg = createImage(w, h);
+  Image croppedImg = ImageCreate(w, h, img->maxval);
   if (croppedImg == NULL) {
     // Error occurred while creating the new image
     return NULL;
@@ -558,9 +569,17 @@ Image ImageCrop(Image img, int x, int y, int w, int h) { ///
   // Copy pixels from the specified region
   for (int i = 0; i < h; ++i) {
     for (int j = 0; j < w; ++j) {
-      int originalIndex = (y + i) * img->width + (x + j);
-      int croppedIndex = i * w + j;
-      croppedImg->pixels[croppedIndex] = img->pixels[originalIndex];
+        
+        // Compute the pixel position in the original image
+        int originalX = x + j;
+        int originalY = y + i;
+        int originalIndex = originalY * img->width + originalX;
+  
+        // Compute the pixel position in the cropped image
+        int croppedIndex = i * w + j;
+  
+        // Copy the pixel value
+        croppedImg->pixel[croppedIndex] = img->pixel[originalIndex];
     }
   }
 
@@ -582,9 +601,11 @@ void ImagePaste(Image img1, int x, int y, Image img2) { ///
   // Iterate over the pixels of img2 and copy them into img1
   for (int i = 0; i < img2->height; ++i) {
     for (int j = 0; j < img2->width; ++j) {
-      int index1 = (y + i) * img1.width + (x + j);
+      int index1 = (y + i) * img1->width + (x + j);
       int index2 = i * img2->width + j;
-      img1.pixels[index1] = img2->pixels[index2];
+
+      // Copy the pixel value
+      img1->pixel[index1] = img2->pixel[index2];
     }
   }
 }
@@ -603,17 +624,17 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha) { ///
   // Iterate over the pixels of img2 and blend them into img1
   for (int i = 0; i < img2->height; ++i) {
     for (int j = 0; j < img2->width; ++j) {
-      int index1 = (y + i) * img1.width + (x + j);
+      int index1 = (y + i) * img1->width + (x + j);
       int index2 = i * img2->width + j;
 
       // Blend the pixel values using the specified alpha
-      double blendedValue = alpha * img2->pixels[index2] + (1.0 - alpha) * img1.pixels[index1];
+      double blendedValue = alpha * img2->pixel[index2] + (1.0 - alpha) * img1->pixel[index1];
 
       // Saturate the result to prevent overflows and underflows
       blendedValue = (blendedValue > 255.0) ? 255.0 : (blendedValue < 0.0) ? 0.0 : blendedValue;
 
       // Update the pixel value in img1
-      img1.pixels[index1] = (unsigned char)blendedValue;
+      img1->pixel[index1] = (unsigned char)blendedValue;
     }
   }
 }
@@ -637,7 +658,7 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) { ///
       int index1 = (y + i) * img1->width + (x + j);
       int index2 = i * img2->width + j;
 
-      if (img1->pixels[index1] != img2->pixels[index2]) {
+      if (img1->pixel[index1] != img2->pixel[index2]) {
         return 0; // Pixels do not match
       }
     }
@@ -680,15 +701,15 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
 void ImageBlur(Image img, int dx, int dy) { ///
   // Insert your code here!
   /// Create a temporary array to store the blurred pixels
-  unsigned char* blurredPixels = malloc(img.width * img.height * sizeof(unsigned char));
+  unsigned char* blurredPixels = malloc(img->width * img->height * sizeof(unsigned char));
   if (blurredPixels == NULL) {
     // Handle memory allocation failure
     return;
   }
 
   // Iterate over each pixel in the image
-  for(int y = 0; y < img.height; ++y) {
-    for (int x = 0; x < img.width; ++x) {
+  for(int y = 0; y < img->height; ++y) {
+    for (int x = 0; x < img->width; ++x) {
       double sum = 0.0;
       int count = 0;
 
@@ -699,22 +720,22 @@ void ImageBlur(Image img, int dx, int dy) { ///
           int newY = y + i;
 
           // Check if the pixel position is valid
-          if (ImageValidPos(&img, newX, newY)) {
-            int index = newY * img.width + newX;
-            sum += img.pixels[index];
-            count++;
+          if (ImageValidPos(img, newX, newY)) {
+            // Add the pixel value to the sum
+            sum += ImageGetPixel(img, newX, newY);
+            ++count;
           }
         }
       }
 
       // Compute the mean and update the blurred image
-      int blurredIndex = y * img.width + x;
+      int blurredIndex = y * img->width + x;
       blurredPixels[blurredIndex] = (unsigned char)(sum / count);
     }
   }
 
   // Copy the blurred pixels back to the original image
-  memcpy(img.pixels, blurredPixels, img.width * img.height * sizeof(unsigned char));
+  memcpy(img->pixel, blurredPixels, img->width * img->height * sizeof(unsigned char));
 
   // Free the temporary array
   free(blurredPixels);
