@@ -505,7 +505,7 @@ Image ImageRotate(Image img) {
   for (int i = 0; i < img->height; ++i) {
     for (int j = 0; j < img->width; ++j) {
       int originalIndex = i * img->width + j;
-      int rotatedIndex = j * rotatedImage->width + (rotatedImage->width - 1 - i);
+      int rotatedIndex = (img->width - 1 - j) * rotatedImage->width + i;
       rotatedImage->pixel[rotatedIndex] = img->pixel[originalIndex];
     }
   }
