@@ -628,7 +628,7 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha) { ///
       int index2 = i * img2->width + j;
 
       // Blend the pixel values using the specified alpha
-      double blendedValue = alpha * img2->pixel[index2] + (1.0 - alpha) * img1->pixel[index1];
+      double blendedValue = alpha * img2->pixel[index2] + (1.0 - alpha) * img1->pixel[index1] + 0.5;
 
       // Saturate the result to prevent overflows and underflows
       blendedValue = (blendedValue > 255.0) ? 255.0 : (blendedValue < 0.0) ? 0.0 : blendedValue;
@@ -700,44 +700,47 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
 /// The image is changed in-place.
 void ImageBlur(Image img, int dx, int dy) { ///
   // Insert your code here!
-  /// Create a temporary array to store the blurred pixels
-  unsigned char* blurredPixels = malloc(img->width * img->height * sizeof(unsigned char));
-  if (blurredPixels == NULL) {
-    // Handle memory allocation failure
+  // Create a new image with the same dimensions
+  Image blurredImg = ImageCreate(img->width, img->height, img->maxval);
+  if (blurredImg == NULL) {
+    // Error occurred while creating the new image
     return;
   }
 
-  // Iterate over each pixel in the image
-  for(int y = 0; y < img->height; ++y) {
+  // Iterate over the pixels of img and apply the mean filter
+  for (int y = 0; y < img->height; ++y) {
     for (int x = 0; x < img->width; ++x) {
-      double sum = 0.0;
+      int sum = 0;
       int count = 0;
 
-      // Iterate over the pixels in the specified rectangle
-      for (int i = -dy; i <= dy; ++i) {
-        for (int j = -dx; j <= dx; ++j) {
-          int newX = x + j;
-          int newY = y + i;
-
-          // Check if the pixel position is valid
-          if (ImageValidPos(img, newX, newY)) {
-            // Add the pixel value to the sum
-            sum += ImageGetPixel(img, newX, newY);
+      // Iterate over the pixels in the neighborhood of the current pixel
+      for (int i = y - dy; i <= y + dy; ++i) {
+        for (int j = x - dx; j <= x + dx; ++j) {
+          if (ImageValidPos(img, j, i)) {
+            // Accumulate the pixel value
+            sum += ImageGetPixel(img, j, i);
             ++count;
           }
         }
       }
 
-      // Compute the mean and update the blurred image
-      int blurredIndex = y * img->width + x;
-      blurredPixels[blurredIndex] = (unsigned char)(sum / count);
+      // Compute the mean value
+      int mean = (int)((double)sum / count + 0.5);
+
+      // Set the pixel value in the blurred image
+      ImageSetPixel(blurredImg, x, y, mean);
     }
   }
 
-  // Copy the blurred pixels back to the original image
-  memcpy(img->pixel, blurredPixels, img->width * img->height * sizeof(unsigned char));
+  // Copy the blurred image into the original image
+  for (int i = 0; i < img->height; ++i) {
+    for (int j = 0; j < img->width; ++j) {
+      int index = i * img->width + j;
+      img->pixel[index] = blurredImg->pixel[index];
+    }
+  }
 
-  // Free the temporary array
-  free(blurredPixels);
+  // Destroy the blurred image
+  ImageDestroy(&blurredImg);
 }
 
