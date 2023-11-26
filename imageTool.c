@@ -86,6 +86,9 @@ static char* errors[] = {
 // add new operations for that purpose.
 
 int main(int ac, char* av[]) {
+	InstrName[0] = "memops";
+  InstrName[1] = "adds";
+  InstrCalibrate();
   program_name = av[0];
   if (ac <= 1) {
     error(5, 0, "\n%s", USAGE);
@@ -190,18 +193,23 @@ int main(int ac, char* av[]) {
     } else if (strcmp(av[k], "locate") == 0) {
       if (n < 2) { err = 2; break; }
       fprintf(stderr, "Locating I%d in I%d\n", n-2, n-1);
+      InstrReset();
       if (ImageLocateSubImage(img[n-1], &x, &y, img[n-2])) {
         printf("# FOUND (%d,%d)\n", x, y);
       } else {
         printf("# NOTFOUND\n");
       }
+      
+      InstrPrint();
     } else if (strcmp(av[k], "blur") == 0) {
       if (++k >= ac) { err = 1; break; }
       if (n < 1) { err = 2; break; }
       int dx; int dy;
       if (sscanf(av[k], "%d,%d", &dx, &dy) != 2) { err = 5; break; }
       fprintf(stderr, "Blur I%d with %dx%d mean filter\n", n-1, 2*dx+1, 2*dy+1);
+      InstrReset();
       ImageBlur(img[n-1], dx, dy);
+      InstrPrint();
     } else if (strcmp(av[k], "save") == 0) {
       if (++k >= ac) { err = 1; break; }
       if (n < 1) { err = 2; break; }
@@ -225,4 +233,3 @@ int main(int ac, char* av[]) {
   error(err, errno, errors[err], ImageErrMsg());
   return 0;
 }
-
